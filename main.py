@@ -60,6 +60,9 @@ def create_employee(employee: EmployeeCreate) -> dict[str, object]:
         "salary": employee.salary,
     }
 
+@app.get("/test")
+def get_test():
+    return "testing"
 
 @app.get("/employees")
 def get_employees() -> list[dict[str, object]]:
