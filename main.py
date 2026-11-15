@@ -1,11 +1,16 @@
 import csv
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
 
-CSV_FILE = Path(__file__).with_name("employees.csv")
+CSV_FILE = (
+    Path("/tmp/employees.csv")
+    if os.getenv("VERCEL")
+    else Path(__file__).with_name("employees.csv")
+)
 CSV_FIELDS = ["employee_id", "name", "age", "salary"]
 
 app = FastAPI(title="Employee API")
@@ -27,14 +32,21 @@ class EmployeeUpdate(BaseModel):
     salary: float | None = Field(default=None, ge=0)
 
 
-def read_employees() -> list[dict[str, str]]:
+def ensure_csv_file() -> None:
+    CSV_FILE.parent.mkdir(parents=True, exist_ok=True)
     if not CSV_FILE.exists():
-        return []
+        with CSV_FILE.open("w", newline="", encoding="utf-8") as file:
+            csv.DictWriter(file, fieldnames=CSV_FIELDS).writeheader()
+
+
+def read_employees() -> list[dict[str, str]]:
+    ensure_csv_file()
     with CSV_FILE.open("r", newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
 
 
 def write_employees(employees: list[dict[str, str]]) -> None:
+    ensure_csv_file()
     with CSV_FILE.open("w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=CSV_FIELDS)
         writer.writeheader()
